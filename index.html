@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>音程当てゲーム（改良版）</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #game-container {
+            width: 300px;
+            text-align: center;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #options {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .option {
+            margin: 5px;
+            padding: 10px;
+            font-size: 14px;
+            background-color: #008CBA;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .option.correct {
+            background-color: #4CAF50;
+        }
+        .option.incorrect {
+            background-color: #f44336;
+        }
+        #score {
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        #result {
+            font-size: 16px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>音程当てゲーム</h1>
+        <button id="play-button">音を再生</button>
+        <div id="options"></div>
+        <div id="result"></div>
+        <div id="score">スコア: 0</div>
+    </div>
+
+    <script>
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const intervals = [
+            { name: '完全1度', semitones: 0 },
+            { name: '短2度', semitones: 1 },
+            { name: '長2度', semitones: 2 },
+            { name: '短3度', semitones: 3 },
+            { name: '長3度', semitones: 4 },
+            { name: '完全4度', semitones: 5 },
+            { name: '増4度/減5度', semitones: 6 },
+            { name: '完全5度', semitones: 7 },
+            { name: '短6度', semitones: 8 },
+            { name: '長6度', semitones: 9 },
+            { name: '短7度', semitones: 10 },
+            { name: '長7度', semitones: 11 },
+            { name: '完全8度', semitones: 12 }
+        ];
+
+        let currentInterval;
+        let score = 0;
+
+        function playTone(frequency, duration) {
+            const oscillator = audioContext.createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+
+            const gainNode = audioContext.createGain();
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        function playInterval() {
+            const baseFrequency = 440; // A4
+            currentInterval = intervals[Math.floor(Math.random() * intervals.length)];
+            const secondFrequency = baseFrequency * Math.pow(2, currentInterval.semitones / 12);
+
+            playTone(baseFrequency, 0.5);
+            setTimeout(() => playTone(secondFrequency, 0.5), 700);
+
+            // リセット
+            document.querySelectorAll('.option').forEach(btn => {
+                btn.classList.remove('correct', 'incorrect');
+                btn.disabled = false;
+            });
+            document.getElementById('result').textContent = '';
+        }
+
+        function checkAnswer(selectedInterval, button) {
+            document.querySelectorAll('.option').forEach(btn => btn.disabled = true);
+
+            if (selectedInterval === currentInterval.name) {
+                score += 100;
+                button.classList.add('correct');
+                document.getElementById('result').textContent = '正解！';
+            } else {
+                button.classList.add('incorrect');
+                document.getElementById('result').textContent = `不正解。正しい答えは ${currentInterval.name} でした。`;
+                document.querySelector(`.option[data-interval="${currentInterval.name}"]`).classList.add('correct');
+            }
+            document.getElementById('score').textContent = `スコア: ${score}`;
+        }
+
+        document.getElementById('play-button').addEventListener('click', playInterval);
+
+        const optionsContainer = document.getElementById('options');
+        intervals.forEach(interval => {
+            const button = document.createElement('button');
+            button.textContent = interval.name;
+            button.classList.add('option');
+            button.dataset.interval = interval.name;
+            button.addEventListener('click', () => checkAnswer(interval.name, button));
+            optionsContainer.appendChild(button);
+        });
+    </script>
+</body>
+</html>
